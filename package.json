@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@picocss/pico": "^2.1.1",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "prettier-plugin-ejs": "^1.0.3"
+  }
+}

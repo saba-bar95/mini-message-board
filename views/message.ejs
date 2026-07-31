@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('partials/head') %>
+  </head>
+  <body>
+    <main class="container">
+      <div>
+        <p>Message: <span><%= message.text %></span></p>
+      </div>
+      <div>
+        <p>Author: <span><%= message.user %></span></p>
+      </div>
+      <div>
+        <p>Date: <span><%= message.added.toLocaleString() %></span></p>
+      </div>
+      <a href="/">back to home</a>
+    </main>
+  </body>
+</html>

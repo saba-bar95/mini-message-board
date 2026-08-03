@@ -6,7 +6,7 @@ import messageRouter from "./routes/messageRouter.js";
 import PageNotFound from "./errors/pageNotFound.js";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const __dirname = path.resolve();
 const viewsPath = path.join(__dirname, "views");
 
@@ -33,5 +33,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Server is running on port 3000");
+  console.log(`Server is running on port ${PORT}`);
 });

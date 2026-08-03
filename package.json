@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "scripts": {
+    "start": "node app.js"
+  },
   "dependencies": {
     "@picocss/pico": "^2.1.1",
     "ejs": "^6.0.1",

@@ -1,18 +1,24 @@
 import { Router } from "express";
-import { messages, pruneOldMessages } from "./indexRouter.js";
 import MessageNotFound from "../errors/messageNotFound.js";
+import * as db from "../db/queries.js";
 
 const messageRouter = Router();
 
-messageRouter.get("/:id", (req, res) => {
-  pruneOldMessages();
-  const { id } = req.params;
-  const message = messages[id - 1];
+messageRouter.get("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
-  if (!message) {
-    throw new MessageNotFound(id);
+    // Fetch the specific message from PostgreSQL by its ID
+    const message = await db.getMessageById(id);
+
+    if (!message) {
+      throw new MessageNotFound(id);
+    }
+
+    res.render("message", { message, title: "Message Details" });
+  } catch (err) {
+    next(err);
   }
-  res.render("message", { message, title: "Message Details" });
 });
 
 export default messageRouter;

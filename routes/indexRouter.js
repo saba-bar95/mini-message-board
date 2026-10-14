@@ -1,52 +1,38 @@
 import { Router } from "express";
 import EmptyFields from "../errors/emptyFields.js";
+import * as db from "../db/queries.js";
 
 const indexRouter = Router();
 
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// GET Route: Fetch all messages from the database and render
+indexRouter.get("/", async (req, res, next) => {
+  try {
+    // Optional: If you want to delete old non-permanent messages before fetching
+    await db.deleteOldMessages();
 
-const messages = [
-  {
-    text: "Hi there!",
-    user: "Amando",
-    added: new Date(),
-    permanent: true,
-  },
-  {
-    text: "Hello World!",
-    user: "Charles",
-    added: new Date(),
-    permanent: true,
-  },
-];
-
-function pruneOldMessages() {
-  const cutoff = Date.now() - MAX_AGE_MS;
-  messages.splice(
-    0,
-    messages.length,
-    ...messages.filter(
-      (message) => message.permanent || message.added.getTime() >= cutoff,
-    ),
-  );
-}
-
-indexRouter.get("/", (req, res) => {
-  pruneOldMessages();
-  res.render("index", { messages: messages, title: "Mini Messageboard" });
+    const messages = await db.getAllMessages();
+    res.render("index", { messages: messages, title: "Mini Messageboard" });
+  } catch (err) {
+    next(err);
+  }
 });
 
-indexRouter.post("/new", (req, res) => {
-  const { author, message } = req.body;
+// POST Route: Validate and insert the new message into the database
+indexRouter.post("/new", async (req, res, next) => {
+  try {
+    const { author, message } = req.body;
 
-  if (!author?.trim() || !message?.trim()) {
-    throw new EmptyFields();
+    if (!author?.trim() || !message?.trim()) {
+      throw new EmptyFields();
+    }
+
+    // Insert into PostgreSQL instead of pushing to an array
+    await db.insertMessage(message.trim(), author.trim());
+
+    res.redirect("/");
+  } catch (err) {
+    next(err);
   }
-
-  pruneOldMessages();
-  messages.push({ text: message.trim(), user: author.trim(), added: new Date() });
-  res.redirect("/");
 });
 
 export default indexRouter;
-export { messages, pruneOldMessages };

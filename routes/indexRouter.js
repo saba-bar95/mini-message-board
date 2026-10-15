@@ -1,15 +1,14 @@
 import { Router } from "express";
-import EmptyFields from "../errors/emptyFields.js";
+import { body, validationResult } from "express-validator";
+import ValidationError from "../errors/validationError.js";
 import * as db from "../db/queries.js";
 
 const indexRouter = Router();
 
-// GET Route: Fetch all messages from the database and render
+// GET Route: Fetch all messages
 indexRouter.get("/", async (req, res, next) => {
   try {
-    // Optional: If you want to delete old non-permanent messages before fetching
     await db.deleteOldMessages();
-
     const messages = await db.getAllMessages();
     res.render("index", { messages: messages, title: "Mini Messageboard" });
   } catch (err) {
@@ -17,18 +16,59 @@ indexRouter.get("/", async (req, res, next) => {
   }
 });
 
-// POST Route: Validate and insert the new message into the database
-indexRouter.post("/new", async (req, res, next) => {
-  try {
-    const { author, message } = req.body;
+// Define validation and sanitization rules
+const validateMessage = [
+  body("author")
+    .trim()
+    .notEmpty()
+    .withMessage("Author is required")
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Author must be between 1 and 50 characters")
+    // Regex ensuring English alphabet, numbers, spaces, and common safe punctuation
+    .matches(/^[A-Za-z0-9\s.,!'-]*$/)
+    .withMessage(
+      "Author must contain only English letters and standard characters",
+    )
+    .escape(), // Prevents XSS / script injection
 
-    if (!author?.trim() || !message?.trim()) {
-      throw new EmptyFields();
+  body("message")
+    .trim()
+    .notEmpty()
+    .withMessage("Message is required")
+    .isLength({ min: 1, max: 300 })
+    .withMessage("Message must be between 1 and 300 characters")
+    .matches(/^[A-Za-z0-9\s.,!?'"-]*$/)
+    .withMessage(
+      "Message must contain only English letters and standard characters",
+    )
+    .custom((value) => {
+      // Basic custom bad words filter example
+      const badWords = ["badword1", "badword2", "spam"];
+      const lowerCaseValue = value.toLowerCase();
+      const containsBadWord = badWords.some((word) =>
+        lowerCaseValue.includes(word),
+      );
+      if (containsBadWord) {
+        throw new Error("Your message contains inappropriate language.");
+      }
+      return true;
+    })
+    .escape(), // Prevents XSS / script injection
+];
+
+// POST Route with Validation
+indexRouter.post("/new", validateMessage, async (req, res, next) => {
+  try {
+    // Check if validation yielded any errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      // Pass the validation errors to your custom error handler
+      throw new ValidationError("Validation failed", errors.array());
     }
 
-    // Insert into PostgreSQL instead of pushing to an array
-    await db.insertMessage(message.trim(), author.trim());
+    const { author, message } = req.body;
 
+    await db.insertMessage(message, author);
     res.redirect("/");
   } catch (err) {
     next(err);
